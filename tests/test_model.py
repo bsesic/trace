@@ -1,9 +1,10 @@
 """Tests for Pydantic data model in trace.model."""
 
 import pytest
+from dataclasses import is_dataclass
 from pydantic import ValidationError
 
-from trace.model import Match, Reason, Token
+from trace.model import AlignmentResult, Lexica, Match, Reason, Token
 
 
 def test_token_minimal_fields():
@@ -72,3 +73,66 @@ def test_match_with_details():
         details={"role": "primary", "expansion": "רבי ישמעאל", "span_size": 2},
     )
     assert m.details["role"] == "primary"
+
+
+def test_alignment_result_basic():
+    a = Token(id="A:0", position=0, raw="x", text="x")
+    b = Token(id="B:0", position=0, raw="x", text="x")
+    m = Match(token_a=a, token_b=b, score=1.0, reason=Reason.EXACT)
+    r = AlignmentResult(
+        matches=[m],
+        total_score=1.0,
+        summary={Reason.EXACT: 1},
+        params={"trace_version": "0.1.0", "language_pack_version": "hbo-0.1.0"},
+    )
+    assert r.seq_a_meta == {}
+    assert r.seq_b_meta == {}
+    assert r.summary[Reason.EXACT] == 1
+
+
+def test_alignment_result_round_trip():
+    a = Token(id="A:0", position=0, raw="x", text="x")
+    b = Token(id="B:0", position=0, raw="x", text="x")
+    m = Match(token_a=a, token_b=b, score=1.0, reason=Reason.EXACT)
+    r = AlignmentResult(
+        matches=[m],
+        seq_a_meta={"witness_id": "W1"},
+        total_score=1.0,
+        summary={Reason.EXACT: 1},
+        params={"lang": "hbo"},
+    )
+    payload = r.model_dump_json()
+    restored = AlignmentResult.model_validate_json(payload)
+    assert restored.matches[0].score == 1.0
+    assert restored.seq_a_meta == {"witness_id": "W1"}
+
+
+def test_lexica_is_dataclass_with_defaults():
+    assert is_dataclass(Lexica)
+    lex = Lexica()
+    assert lex.abbreviations == {}
+    assert lex.plene_defective_pairs == []
+
+
+def test_lexica_merge():
+    a = Lexica(
+        abbreviations={"ר\"י": ["רבי ישמעאל"]},
+        plene_defective_pairs=[("דויד", "דוד")],
+    )
+    b = Lexica(
+        abbreviations={"רשב\"י": ["רבי שמעון בן יוחאי"]},
+        plene_defective_pairs=[("משיח", "מאשיח")],
+    )
+    merged = a.merge(b)
+    assert "ר\"י" in merged.abbreviations
+    assert "רשב\"י" in merged.abbreviations
+    assert ("דויד", "דוד") in merged.plene_defective_pairs
+    assert ("משיח", "מאשיח") in merged.plene_defective_pairs
+
+
+def test_lexica_merge_does_not_mutate_inputs():
+    a = Lexica(abbreviations={"x": ["X"]})
+    b = Lexica(abbreviations={"y": ["Y"]})
+    a.merge(b)
+    assert "y" not in a.abbreviations
+    assert "x" not in b.abbreviations
