@@ -4,7 +4,7 @@ import pytest
 from dataclasses import is_dataclass
 from pydantic import ValidationError
 
-from trace.model import AlignmentResult, Lexica, Match, Reason, Token
+from tracealign.model import AlignmentResult, Lexica, Match, Reason, Token
 
 
 def test_token_minimal_fields():
