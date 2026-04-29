@@ -61,9 +61,14 @@ class Lexica:
     plene_defective_pairs: list[tuple[str, str]] = field(default_factory=list)
 
     def merge(self, other: "Lexica") -> "Lexica":
-        merged_abbrev = dict(self.abbreviations)
+        merged_abbrev: dict[str, list[str]] = {
+            k: list(v) for k, v in self.abbreviations.items()
+        }
         for key, vals in other.abbreviations.items():
-            merged_abbrev.setdefault(key, list(vals))
+            target = merged_abbrev.setdefault(key, [])
+            for v in vals:
+                if v not in target:
+                    target.append(v)
         merged_pairs = list(self.plene_defective_pairs)
         for pair in other.plene_defective_pairs:
             if pair not in merged_pairs:

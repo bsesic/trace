@@ -136,3 +136,17 @@ def test_lexica_merge_does_not_mutate_inputs():
     a.merge(b)
     assert "y" not in a.abbreviations
     assert "x" not in b.abbreviations
+
+
+def test_lexica_merge_combines_overlapping_abbreviation_keys():
+    a = Lexica(abbreviations={"ר\"י": ["רבי ישמעאל", "רבי יהודה"]})
+    b = Lexica(abbreviations={"ר\"י": ["רבי יוסי"]})
+    merged = a.merge(b)
+    assert merged.abbreviations["ר\"י"] == ["רבי ישמעאל", "רבי יהודה", "רבי יוסי"]
+
+
+def test_lexica_merge_dedupes_overlapping_expansions():
+    a = Lexica(abbreviations={"ר\"י": ["רבי ישמעאל"]})
+    b = Lexica(abbreviations={"ר\"י": ["רבי ישמעאל", "רבי יוסי"]})
+    merged = a.merge(b)
+    assert merged.abbreviations["ר\"י"] == ["רבי ישמעאל", "רבי יוסי"]
