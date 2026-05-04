@@ -60,6 +60,28 @@ class Lexica:
     abbreviations: dict[str, list[str]] = field(default_factory=dict)
     plene_defective_pairs: list[tuple[str, str]] = field(default_factory=list)
 
+    @classmethod
+    def load(cls, paths: dict[str, Any]) -> "Lexica":
+        import json
+
+        abbreviations: dict[str, list[str]] = {}
+        plene_defective_pairs: list[tuple[str, str]] = []
+
+        ap = paths.get("abbreviations")
+        if ap is not None:
+            data = json.loads(ap.read_text(encoding="utf-8"))
+            abbreviations = {k: list(v) for k, v in data.items()}
+
+        pp = paths.get("plene_defective_pairs")
+        if pp is not None:
+            data = json.loads(pp.read_text(encoding="utf-8"))
+            plene_defective_pairs = [tuple(item) for item in data]
+
+        return cls(
+            abbreviations=abbreviations,
+            plene_defective_pairs=plene_defective_pairs,
+        )
+
     def merge(self, other: "Lexica") -> "Lexica":
         merged_abbrev: dict[str, list[str]] = {
             k: list(v) for k, v in self.abbreviations.items()
