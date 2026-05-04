@@ -1,8 +1,9 @@
-"""HebrewLanguagePack — wires hooks together. Normalize and scoring come later."""
+"""HebrewLanguagePack."""
 
 from __future__ import annotations
 
 from tracealign.lang.base import LanguagePack, ScoringTier
+from tracealign.lang.hebrew.normalize import has_gershayim, skeleton, strip_niqqud
 from tracealign.lang.hebrew.tokenize import HEB_MID_WORD_CHARS, split_maqqef_compounds
 from tracealign.model import Lexica, Token
 from tracealign.tokenize.base import RawToken
@@ -22,15 +23,25 @@ class HebrewLanguagePack(LanguagePack):
         return split_maqqef_compounds(raws)
 
     def normalize(self, raw: RawToken) -> Token:
-        # Placeholder until Task 7. Returns a minimal Token so the ABC is satisfied.
+        text = strip_niqqud(raw.raw)
+        flags = set(raw.flags)
+        metadata: dict = {}
+        if has_gershayim(raw.raw):
+            flags.add("abbreviation")
+        candidates = self.lexica.abbreviations.get(text)
+        if candidates:
+            flags.add("abbreviation")
+            metadata["abbrev_candidates"] = list(candidates)
         return Token(
             id=f"hbo:{raw.span[0]:06d}",
             position=raw.span[0],
             raw=raw.raw,
-            text=raw.raw,
-            flags=set(raw.flags),
+            text=text,
+            representations={"skeleton": skeleton(text)},
+            flags=flags,
+            source_span=raw.span,
+            metadata=metadata,
         )
 
     def scoring_tiers(self) -> list[ScoringTier]:
-        # Placeholder until Task 9.
-        return []
+        return []  # Placeholder until Task 9
