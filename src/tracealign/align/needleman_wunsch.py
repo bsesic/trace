@@ -48,6 +48,25 @@ def _pair_score(
     return cached
 
 
+def _abbrev_span_score_a_to_b(
+    a_tok: Token,
+    b_span: list[Token],
+) -> tuple[float, str] | None:
+    """Return (score, expansion) if any abbrev_candidate matches the span 1:1 by `text`.
+
+    The score is the ABBREVIATION-tier score (0.85), still on the [0, 1] tier scale.
+    """
+    if "abbreviation" not in a_tok.flags:
+        return None
+    candidates = a_tok.metadata.get("abbrev_candidates", [])
+    span_texts = [t.text for t in b_span]
+    for cand in candidates:
+        parts = cand.split()
+        if parts == span_texts:
+            return (0.85, cand)
+    return None
+
+
 def align_sequences(
     seq_a: list[Token],
     seq_b: list[Token],
@@ -64,6 +83,12 @@ def align_sequences(
     TBM = np.zeros((m + 1, n + 1), dtype=np.int8)
     TBX = np.zeros((m + 1, n + 1), dtype=np.int8)
     TBY = np.zeros((m + 1, n + 1), dtype=np.int8)
+
+    # Abbreviation-span lookahead support.
+    AB = np.full((m + 1, n + 1), NEG_INF, dtype=np.float64)
+    TBAB_K = np.zeros((m + 1, n + 1), dtype=np.int8)   # span size (k)
+    TBAB_SIDE = np.zeros((m + 1, n + 1), dtype=np.int8)  # 0=a-is-abbrev, 1=b-is-abbrev
+    TBAB_EXPANSION: dict[tuple[int, int], str] = {}
 
     M[0, 0] = 0.0
     if config.semi_global_a:
@@ -124,6 +149,46 @@ def align_sequences(
             else:
                 TBY[i, j] = 3
 
+            if config.abbrev_lookahead:
+                # a[i-1] is the abbreviation; consume k tokens of b ending at j-1.
+                if "abbreviation" in seq_a[i - 1].flags:
+                    for k in range(2, min(config.abbrev_max_span, j) + 1):
+                        span = seq_b[j - k:j]
+                        sc = _abbrev_span_score_a_to_b(seq_a[i - 1], span)
+                        if sc is None:
+                            continue
+                        score_unit, expansion = sc
+                        s_dp = _dp_score(score_unit)
+                        prev = max(M[i - 1, j - k], X[i - 1, j - k], Y[i - 1, j - k])
+                        cand = s_dp + prev
+                        if cand > AB[i, j]:
+                            AB[i, j] = cand
+                            TBAB_K[i, j] = k
+                            TBAB_SIDE[i, j] = 0
+                            TBAB_EXPANSION[(i, j)] = expansion
+
+                # symmetric: b[j-1] is the abbreviation; consume k tokens of a.
+                if "abbreviation" in seq_b[j - 1].flags:
+                    for k in range(2, min(config.abbrev_max_span, i) + 1):
+                        span = seq_a[i - k:i]
+                        sc = _abbrev_span_score_a_to_b(seq_b[j - 1], span)
+                        if sc is None:
+                            continue
+                        score_unit, expansion = sc
+                        s_dp = _dp_score(score_unit)
+                        prev = max(M[i - k, j - 1], X[i - k, j - 1], Y[i - k, j - 1])
+                        cand = s_dp + prev
+                        if cand > AB[i, j]:
+                            AB[i, j] = cand
+                            TBAB_K[i, j] = k
+                            TBAB_SIDE[i, j] = 1
+                            TBAB_EXPANSION[(i, j)] = expansion
+
+                # Promote AB[i, j] into M[i, j] if it wins.
+                if AB[i, j] > M[i, j]:
+                    M[i, j] = AB[i, j]
+                    TBM[i, j] = 4  # abbreviation-span transition
+
     # Choose traceback start.
     if config.semi_global_a or config.semi_global_b:
         best_val = NEG_INF
@@ -168,6 +233,68 @@ def align_sequences(
     while i > 0 or j > 0:
         if matrix == "M":
             tb = TBM[i, j]
+            if tb == 4:
+                k = int(TBAB_K[i, j])
+                side = int(TBAB_SIDE[i, j])
+                expansion = TBAB_EXPANSION[(i, j)]
+                if side == 0:
+                    abbrev_tok = seq_a[i - 1]
+                    span_tokens = seq_b[j - k:j]
+                    primary = Match(
+                        token_a=abbrev_tok,
+                        token_b=span_tokens[0],
+                        score=0.85,
+                        reason=Reason.ABBREVIATION,
+                        details={
+                            "role": "primary",
+                            "expansion": expansion,
+                            "span_size": k,
+                            "span_token_ids": [t.id for t in span_tokens],
+                        },
+                    )
+                    matches.append(primary)
+                    for cont_tok in span_tokens[1:]:
+                        matches.append(
+                            Match(
+                                token_a=abbrev_tok,
+                                token_b=cont_tok,
+                                score=0.0,
+                                reason=Reason.ABBREVIATION,
+                                details={"role": "continuation", "primary_index": -1},
+                            )
+                        )
+                    i -= 1
+                    j -= k
+                else:
+                    abbrev_tok = seq_b[j - 1]
+                    span_tokens = seq_a[i - k:i]
+                    primary = Match(
+                        token_a=span_tokens[0],
+                        token_b=abbrev_tok,
+                        score=0.85,
+                        reason=Reason.ABBREVIATION,
+                        details={
+                            "role": "primary",
+                            "expansion": expansion,
+                            "span_size": k,
+                            "span_token_ids": [t.id for t in span_tokens],
+                        },
+                    )
+                    matches.append(primary)
+                    for cont_tok in span_tokens[1:]:
+                        matches.append(
+                            Match(
+                                token_a=cont_tok,
+                                token_b=abbrev_tok,
+                                score=0.0,
+                                reason=Reason.ABBREVIATION,
+                                details={"role": "continuation", "primary_index": -1},
+                            )
+                        )
+                    i -= k
+                    j -= 1
+                matrix = "M"
+                continue
             mres = _pair_score(seq_a[i - 1], seq_b[j - 1], pack, cache)
             matches.append(mres)
             i -= 1
@@ -189,5 +316,15 @@ def align_sequences(
             matrix = {1: "M", 2: "X", 3: "Y"}[tb]
 
     matches.reverse()
+
+    # Rebind primary_index for continuation matches to their post-reverse list index.
+    last_primary_index: int | None = None
+    for idx, mm in enumerate(matches):
+        if mm.details and mm.details.get("role") == "primary":
+            last_primary_index = idx
+        elif mm.details and mm.details.get("role") == "continuation":
+            if last_primary_index is not None:
+                mm.details["primary_index"] = last_primary_index
+
     matches.extend(trailing)
     return matches
