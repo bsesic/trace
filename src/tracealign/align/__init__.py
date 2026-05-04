@@ -1,5 +1,5 @@
 """Alignment subpackage."""
 
-from tracealign.align.needleman_wunsch import AlignerConfig, align_sequences
+from tracealign.align.needleman_wunsch import AlignerConfig, align, align_sequences
 
-__all__ = ["AlignerConfig", "align_sequences"]
+__all__ = ["AlignerConfig", "align", "align_sequences"]

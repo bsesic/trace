@@ -11,8 +11,9 @@ from dataclasses import dataclass
 
 import numpy as np
 
+import tracealign as _tracealign_pkg
 from tracealign.lang.base import LanguagePack
-from tracealign.model import Match, Reason, Token
+from tracealign.model import AlignmentResult, Match, Reason, Token
 from tracealign.score.tiered import tiered_score
 
 
@@ -328,3 +329,58 @@ def align_sequences(
 
     matches.extend(trailing)
     return matches
+
+
+def _build_summary(matches: list[Match]) -> dict[Reason, int]:
+    counts: dict[Reason, int] = {}
+    for m in matches:
+        if m.details and m.details.get("role") == "continuation":
+            continue
+        counts[m.reason] = counts.get(m.reason, 0) + 1
+    return {r: c for r, c in counts.items() if c > 0}
+
+
+def _build_total_score(matches: list[Match], len_a: int, len_b: int) -> float:
+    contributing = [
+        m
+        for m in matches
+        if not (m.details and m.details.get("role") == "continuation")
+    ]
+    if not contributing:
+        return 0.0
+    s = sum(m.score for m in contributing)
+    denom = max(len_a, len_b)
+    return s / denom if denom > 0 else 0.0
+
+
+def align(
+    seq_a: list[Token],
+    seq_b: list[Token],
+    pack: LanguagePack,
+    config: AlignerConfig | None = None,
+    seq_a_meta: dict | None = None,
+    seq_b_meta: dict | None = None,
+) -> AlignmentResult:
+    cfg = config or AlignerConfig()
+    matches = align_sequences(seq_a, seq_b, pack, cfg)
+    summary = _build_summary(matches)
+    total = _build_total_score(matches, len(seq_a), len(seq_b))
+    params: dict = {
+        "lang": pack.code,
+        "gap_open": cfg.gap_open,
+        "gap_extend": cfg.gap_extend,
+        "abbrev_max_span": cfg.abbrev_max_span,
+        "semi_global_a": cfg.semi_global_a,
+        "semi_global_b": cfg.semi_global_b,
+        "abbrev_lookahead": cfg.abbrev_lookahead,
+        "language_pack_version": pack.version,
+        "trace_version": getattr(_tracealign_pkg, "__version__", "0.0.0"),
+    }
+    return AlignmentResult(
+        matches=matches,
+        seq_a_meta=seq_a_meta or {},
+        seq_b_meta=seq_b_meta or {},
+        total_score=total,
+        summary=summary,
+        params=params,
+    )
