@@ -56,4 +56,5 @@ class HebrewLanguagePack(LanguagePack):
         )
 
     def scoring_tiers(self) -> list[ScoringTier]:
-        return []  # Placeholder until Task 9
+        from tracealign.lang.hebrew.scoring import hebrew_scoring_tiers
+        return hebrew_scoring_tiers()
