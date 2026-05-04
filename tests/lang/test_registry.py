@@ -79,3 +79,12 @@ def test_re_register_replaces():
     register_language(p1)
     register_language(p2)
     assert get_language("xx") is p2
+
+
+def test_hebrew_pack_auto_registers_on_import():
+    _reset_registry_for_tests()
+    import importlib
+    import tracealign.lang.hebrew
+
+    importlib.reload(tracealign.lang.hebrew)
+    assert "hbo" in list_languages()
