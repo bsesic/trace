@@ -66,13 +66,22 @@ def align_sequences(
     TBY = np.zeros((m + 1, n + 1), dtype=np.int8)
 
     M[0, 0] = 0.0
-    # Global initialization (semi-global is added in Task 12).
-    for i in range(1, m + 1):
-        X[i, 0] = config.gap_open + config.gap_extend * (i - 1)
-        TBX[i, 0] = 2
-    for j in range(1, n + 1):
-        Y[0, j] = config.gap_open + config.gap_extend * (j - 1)
-        TBY[0, j] = 3
+    if config.semi_global_a:
+        for i in range(1, m + 1):
+            X[i, 0] = 0.0
+            TBX[i, 0] = 2
+    else:
+        for i in range(1, m + 1):
+            X[i, 0] = config.gap_open + config.gap_extend * (i - 1)
+            TBX[i, 0] = 2
+    if config.semi_global_b:
+        for j in range(1, n + 1):
+            Y[0, j] = 0.0
+            TBY[0, j] = 3
+    else:
+        for j in range(1, n + 1):
+            Y[0, j] = config.gap_open + config.gap_extend * (j - 1)
+            TBY[0, j] = 3
 
     for i in range(1, m + 1):
         for j in range(1, n + 1):
@@ -115,9 +124,45 @@ def align_sequences(
             else:
                 TBY[i, j] = 3
 
-    # Traceback from (m, n) for global alignment.
-    i, j = m, n
-    matrix = max(("M", M[m, n]), ("X", X[m, n]), ("Y", Y[m, n]), key=lambda kv: kv[1])[0]
+    # Choose traceback start.
+    if config.semi_global_a or config.semi_global_b:
+        best_val = NEG_INF
+        best_pos = (m, n, "M")
+        for jj in range(0, n + 1):
+            for name, mat in (("M", M), ("X", X), ("Y", Y)):
+                val = mat[m, jj]
+                if val > best_val:
+                    best_val = val
+                    best_pos = (m, jj, name)
+        for ii in range(0, m + 1):
+            for name, mat in (("M", M), ("X", X), ("Y", Y)):
+                val = mat[ii, n]
+                if val > best_val:
+                    best_val = val
+                    best_pos = (ii, n, name)
+        start_i, start_j, matrix = best_pos
+        # Free trailing rim: tokens after the chosen traceback start are appended
+        # as INSERTION (rim of A) / OMISSION (rim of B) without DP penalty,
+        # so every input token still appears in the output.
+        trailing: list[Match] = []
+        ti, tj = start_i, start_j
+        while ti < m:
+            trailing.append(
+                Match(token_a=seq_a[ti], token_b=None, score=0.0, reason=Reason.INSERTION)
+            )
+            ti += 1
+        while tj < n:
+            trailing.append(
+                Match(token_a=None, token_b=seq_b[tj], score=0.0, reason=Reason.OMISSION)
+            )
+            tj += 1
+        i, j = start_i, start_j
+    else:
+        i, j = m, n
+        matrix = max(
+            ("M", M[m, n]), ("X", X[m, n]), ("Y", Y[m, n]), key=lambda kv: kv[1]
+        )[0]
+        trailing = []
 
     matches: list[Match] = []
     while i > 0 or j > 0:
@@ -144,4 +189,5 @@ def align_sequences(
             matrix = {1: "M", 2: "X", 3: "Y"}[tb]
 
     matches.reverse()
+    matches.extend(trailing)
     return matches
