@@ -1,6 +1,6 @@
 # TRACE Roadmap
 
-**Last updated:** 2026-05-04
+**Last updated:** 2026-05-06
 **Current branch:** `feature/v0.1-design-spec`
 
 This document tracks the high-level status of TRACE and the order in which the
@@ -16,7 +16,7 @@ breakdown see `docs/superpowers/plans/2026-04-28-trace-v0.1.md`.
 semi-global Needleman–Wunsch with affine gaps and abbreviation-span lookahead,
 and JSON / TEI / eScriptorium I/O.
 
-### Status: 16 of 21 tasks complete (92 tests passing, flake8 clean)
+### Status: 17 of 21 tasks complete (99 tests passing, flake8 clean)
 
 | # | Task | Status |
 |---|---|---|
@@ -37,8 +37,8 @@ and JSON / TEI / eScriptorium I/O.
 | 13 | Aligner — affine gap verification tests | ✅ |
 | 14 | Aligner — abbreviation-span lookahead (primary + continuation) | ✅ |
 | 15 | Aligner — `align()` wrapper with summary + total_score | ✅ |
-| 16 | Public API in `tracealign.__init__` | ⏳ next |
-| 17 | I/O — JSON dump/load for `AlignmentResult` | ⏳ |
+| 16 | Public API in `tracealign.__init__` | ✅ |
+| 17 | I/O — JSON dump/load for `AlignmentResult` | ⏳ next |
 | 18 | I/O — eScriptorium JSON importer | ⏳ |
 | 19 | I/O — TEI XML importer | ⏳ |
 | 20 | E2E synthetic Hebrew golden file | ⏳ |
