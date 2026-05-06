@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
+from importlib.resources.abc import Traversable
+from pathlib import Path
+from typing import Any, Union
 
 from pydantic import BaseModel, ConfigDict, Field
+
+_PathLike = Union[Path, Traversable, str]
 
 
 class Reason(str, Enum):
@@ -61,20 +65,24 @@ class Lexica:
     plene_defective_pairs: list[tuple[str, str]] = field(default_factory=list)
 
     @classmethod
-    def load(cls, paths: dict[str, Any]) -> "Lexica":
+    def load(cls, paths: "dict[str, _PathLike]") -> "Lexica":
         import json
+        from pathlib import Path as _Path
+
+        def _as_readable(p: "_PathLike") -> Any:
+            return _Path(p) if isinstance(p, str) else p
 
         abbreviations: dict[str, list[str]] = {}
         plene_defective_pairs: list[tuple[str, str]] = []
 
         ap = paths.get("abbreviations")
         if ap is not None:
-            data = json.loads(ap.read_text(encoding="utf-8"))
+            data = json.loads(_as_readable(ap).read_text(encoding="utf-8"))
             abbreviations = {k: list(v) for k, v in data.items()}
 
         pp = paths.get("plene_defective_pairs")
         if pp is not None:
-            data = json.loads(pp.read_text(encoding="utf-8"))
+            data = json.loads(_as_readable(pp).read_text(encoding="utf-8"))
             plene_defective_pairs = [tuple(item) for item in data]
 
         return cls(

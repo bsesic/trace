@@ -26,7 +26,6 @@ def _parse(source: Path | str) -> etree._Element:
 def load(
     source: Path | str,
     lang: str | LanguagePack = "hbo",
-    text_xpath: str | None = None,
     seq_label: str = "tei",
 ) -> list[Token]:
     pack = get_language(lang)

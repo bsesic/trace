@@ -30,6 +30,13 @@ def test_lexica_load_with_missing_keys_is_empty():
     assert lex.plene_defective_pairs == []
 
 
+def test_lexica_load_accepts_string_paths(tmp_path: Path):
+    abbrev_path = tmp_path / "abbrev.json"
+    abbrev_path.write_text('{"y": ["Y expansion"]}', encoding="utf-8")
+    lex = Lexica.load({"abbreviations": str(abbrev_path)})
+    assert lex.abbreviations == {"y": ["Y expansion"]}
+
+
 def test_pack_uses_default_lexica_when_none_provided():
     pack = HebrewLanguagePack()
     assert pack.lexica.abbreviations  # non-empty
