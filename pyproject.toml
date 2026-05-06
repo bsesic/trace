@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tracealign"
+version = "0.1.0"
+description = "Textual Reuse, Alignment, and Collation Engine"
+authors = [{ name = "Benjamin Schnabel" }]
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+readme = "README.md"
+dependencies = [
+    "pydantic>=2.13",
+    "numpy>=2.0",
+    "lxml>=5.0",
+    "rapidfuzz>=3.10",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "flake8>=7.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"tracealign.lang.hebrew.data" = ["*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-ra -q"
