@@ -1,0 +1,12 @@
+{
+    "witness_id": "W1",
+    "regions": [
+        {
+            "label": "fol. 12r",
+            "lines": [
+                {"line_pk": 7, "content": "שלום עולם", "bbox": [10, 20, 100, 50]},
+                {"line_pk": 8, "content": "ר\"י אמר"}
+            ]
+        }
+    ]
+}
