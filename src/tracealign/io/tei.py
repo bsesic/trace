@@ -27,6 +27,7 @@ def load(
     source: Path | str,
     lang: str | LanguagePack = "hbo",
     text_xpath: str | None = None,
+    seq_label: str = "tei",
 ) -> list[Token]:
     pack = get_language(lang)
     root = _parse(source)
@@ -42,12 +43,12 @@ def load(
             content = "".join(w.itertext()).strip()
             if not content:
                 continue
-            sub = tracealign.tokenize(content, lang=pack, seq_label="tei")
+            sub = tracealign.tokenize(content, lang=pack, seq_label=seq_label)
             for tok in sub:
                 out.append(
                     tok.model_copy(
                         update={
-                            "id": f"tei:{position:06d}",
+                            "id": f"{seq_label}:{position:06d}",
                             "position": position,
                         }
                     )
@@ -55,4 +56,4 @@ def load(
                 position += 1
         return out
     body_text = " ".join(t.strip() for t in body.itertext() if t and t.strip())
-    return tracealign.tokenize(body_text, lang=pack, seq_label="tei")
+    return tracealign.tokenize(body_text, lang=pack, seq_label=seq_label)
