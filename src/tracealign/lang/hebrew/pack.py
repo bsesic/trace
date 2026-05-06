@@ -35,6 +35,9 @@ class HebrewLanguagePack(LanguagePack):
         return split_maqqef_compounds(raws)
 
     def normalize(self, raw: RawToken) -> Token:
+        # `id` and `position` here are pack-local placeholders derived from the
+        # raw character span. The public `tracealign.tokenize()` overrides both
+        # with sequence-index values keyed by the caller's `seq_label`.
         text = strip_niqqud(raw.raw)
         flags = set(raw.flags)
         metadata: dict = {}
