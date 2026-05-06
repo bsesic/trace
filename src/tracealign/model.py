@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from importlib.resources.abc import Traversable
 from pathlib import Path
-from typing import Any, Union
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-_PathLike = Union[Path, Traversable, str]
+_PathLike = Path | Traversable | str
 
 
 class Reason(str, Enum):
@@ -65,12 +65,11 @@ class Lexica:
     plene_defective_pairs: list[tuple[str, str]] = field(default_factory=list)
 
     @classmethod
-    def load(cls, paths: "dict[str, _PathLike]") -> "Lexica":
+    def load(cls, paths: dict[str, _PathLike]) -> "Lexica":
         import json
-        from pathlib import Path as _Path
 
-        def _as_readable(p: "_PathLike") -> Any:
-            return _Path(p) if isinstance(p, str) else p
+        def _as_readable(p: _PathLike) -> Any:
+            return Path(p) if isinstance(p, str) else p
 
         abbreviations: dict[str, list[str]] = {}
         plene_defective_pairs: list[tuple[str, str]] = []
