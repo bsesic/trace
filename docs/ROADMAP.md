@@ -16,7 +16,7 @@ breakdown see `docs/superpowers/plans/2026-04-28-trace-v0.1.md`.
 semi-global Needleman–Wunsch with affine gaps and abbreviation-span lookahead,
 and JSON / TEI / eScriptorium I/O.
 
-### Status: 20 of 21 tasks complete (102 tests passing, flake8 clean)
+### Status: 21 of 21 implementation tasks complete (106 tests passing, flake8 clean) — ready for final review + merge
 
 | # | Task | Status |
 |---|---|---|
@@ -41,8 +41,8 @@ and JSON / TEI / eScriptorium I/O.
 | 17 | I/O — JSON dump/load for `AlignmentResult` | ✅ |
 | 18 | I/O — eScriptorium JSON importer | ✅ |
 | 19 | I/O — TEI XML importer | ✅ |
-| 20 | E2E synthetic Hebrew golden file | ⏳ next |
-| — | Final code review + merge to `develop` | ⏳ |
+| 20 | E2E synthetic Hebrew golden file | ✅ |
+| — | Final code review + merge to `develop` | ⏳ next |
 
 ### v0.1 Acceptance Criteria
 
