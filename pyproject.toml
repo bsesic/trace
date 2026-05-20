@@ -4,18 +4,49 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracealign"
-version = "0.1.0"
-description = "Textual Reuse, Alignment, and Collation Engine"
+version = "0.1.1"
+description = "Textual Reuse, Alignment, and Collation Engine — pairwise philological alignment with pluggable language packs"
 authors = [{ name = "Benjamin Schnabel" }]
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 readme = "README.md"
+keywords = [
+    "philology",
+    "textual-criticism",
+    "alignment",
+    "collation",
+    "hebrew",
+    "needleman-wunsch",
+    "manuscripts",
+    "digital-humanities",
+    "escriptorium",
+    "tei",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Text Processing :: Markup :: XML",
+]
 dependencies = [
     "pydantic>=2.13",
     "numpy>=2.0",
     "lxml>=5.0",
     "rapidfuzz>=3.10",
 ]
+
+[project.urls]
+Homepage = "https://github.com/bsesic/trace"
+Repository = "https://github.com/bsesic/trace"
+Issues = "https://github.com/bsesic/trace/issues"
 
 [project.optional-dependencies]
 dev = [
