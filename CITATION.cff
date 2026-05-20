@@ -12,6 +12,13 @@ url: "https://tracealign.readthedocs.io"
 license: MIT
 version: "0.1.2"
 date-released: "2026-05-20"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.20315408"
+    description: "Concept DOI — always resolves to the latest archived release."
+  - type: doi
+    value: "10.5281/zenodo.20315460"
+    description: "Version DOI for TRACE 0.1.2."
 keywords:
   - philology
   - textual-criticism
