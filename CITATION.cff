@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: "TRACE: Textual Reuse, Alignment, and Collation Engine"
+message: "If you use TRACE in academic work, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: Schnabel
+    given-names: Benjamin
+    email: benjamin.schnabel@ephe.psl.eu
+    affiliation: "École Pratique des Hautes Études (EPHE), Université PSL"
+repository-code: "https://github.com/bsesic/trace"
+url: "https://tracealign.readthedocs.io"
+license: MIT
+version: "0.1.2"
+date-released: "2026-05-20"
+keywords:
+  - philology
+  - textual-criticism
+  - alignment
+  - collation
+  - hebrew
+  - digital-humanities
+  - needleman-wunsch
+  - manuscripts
+  - tei
+abstract: >-
+  TRACE is a Python library for pairwise philological alignment with pluggable
+  language packs. It implements semi-global Needleman-Wunsch with affine gap
+  penalties (Gotoh) and a multi-token abbreviation-span lookahead, returning
+  alignment matches annotated with a tiered reason (exact, niqqud-stripped,
+  plene/defective, abbreviation, orthographic, insertion, omission, no-match).
+  The first shipped language pack covers Biblical and Rabbinic Hebrew.
