@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from importlib.resources.abc import Traversable
+try:
+    from importlib.resources.abc import Traversable  # Python 3.11+
+except ModuleNotFoundError:  # pragma: no cover - Python 3.10 fallback
+    from importlib.abc import Traversable
 from pathlib import Path
 from typing import Any
 
