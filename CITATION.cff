@@ -17,8 +17,8 @@ identifiers:
     value: "10.5281/zenodo.20315408"
     description: "Concept DOI — always resolves to the latest archived release."
   - type: doi
-    value: "10.5281/zenodo.20315460"
-    description: "Version DOI for TRACE 0.1.2."
+    value: "10.5281/zenodo.20315712"
+    description: "Version DOI for TRACE 0.1.3."
 keywords:
   - philology
   - textual-criticism
