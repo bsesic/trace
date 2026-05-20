@@ -7,6 +7,7 @@
 [![Python versions](https://img.shields.io/pypi/pyversions/tracealign.svg)](https://pypi.org/project/tracealign/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Documentation Status](https://readthedocs.org/projects/tracealign/badge/?version=latest)](https://tracealign.readthedocs.io/en/latest/)
+[![DOI](https://zenodo.org/badge/1222456359.svg)](https://doi.org/10.5281/zenodo.20315408)
 
 TRACE is designed for textual criticism, manuscript witness comparison, and the creation of digital synopses and critical editions. The core is language-agnostic; the first shipped language pack covers Biblical and Rabbinic Hebrew (`hbo`).
 
