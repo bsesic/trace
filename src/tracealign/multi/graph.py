@@ -28,3 +28,18 @@ class GraphEdge(BaseModel):
     source_id: str
     target_id: str
     witnesses: set[str]
+
+
+class VariantGraph(BaseModel):
+    """A directed acyclic graph representing a multi-witness alignment.
+
+    Nodes are topologically sorted with the START sentinel first and the END
+    sentinel last. Every witness path runs from START to END along edges
+    whose `witnesses` set contains the witness id.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    nodes: list[GraphNode]
+    edges: list[GraphEdge]
+    witness_ids: list[str]
