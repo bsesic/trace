@@ -88,3 +88,12 @@ class VariantGraph(BaseModel):
                 path.append(nodes_by_id[next_id])
             cur = next_id
         return path
+
+    def variants(self):
+        """Yield non-sentinel nodes whose witnesses disagree (>1 distinct token texts)."""
+        for node in self.nodes:
+            if node.id in ("START", "END"):
+                continue
+            texts = {t.text for t in node.tokens.values()}
+            if len(texts) > 1:
+                yield node
