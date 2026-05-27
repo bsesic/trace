@@ -156,3 +156,19 @@ def _avg_distance(a: set[str], b: set[str], D: dict[frozenset[str], float]) -> f
             total += D[frozenset([x, y])]
             count += 1
     return total / count if count else 0.0
+
+
+def post_order_witness_ids(tree: GuideTree) -> list[str]:
+    """Return the witness ids in canonical post-order traversal of the tree."""
+    out: list[str] = []
+    _post_order(tree.root, out)
+    return out
+
+
+def _post_order(node: GuideTreeNode, out: list[str]) -> None:
+    if node.is_leaf:
+        if node.witness_id is not None:
+            out.append(node.witness_id)
+        return
+    for child in node.children:
+        _post_order(child, out)
