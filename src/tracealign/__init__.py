@@ -16,6 +16,14 @@ from tracealign.lang.registry import (
     register_language,
 )
 from tracealign.model import AlignmentResult, Lexica, Match, Reason, Token
+from tracealign.multi.api import (
+    MultiAlignerConfig,
+    MultiAlignmentResult,
+    align_multi,
+)
+from tracealign.multi.graph import GraphEdge, GraphNode, VariantGraph
+from tracealign.multi.guide_tree import GuideTree, GuideTreeNode
+from tracealign.multi.table import AlignedTable, TableCell, TableColumn
 from tracealign.tokenize.base import (
     DEFAULT_EDITORIAL_RULES,
     EditorialBracketRules,
@@ -116,19 +124,30 @@ def align(
 
 
 __all__ = [
+    "AlignedTable",
     "AlignerConfig",
     "AlignmentResult",
     "DEFAULT_EDITORIAL_RULES",
     "EditorialBracketRules",
+    "GraphEdge",
+    "GraphNode",
+    "GuideTree",
+    "GuideTreeNode",
     "LanguagePack",
     "Lexica",
     "Match",
+    "MultiAlignerConfig",
+    "MultiAlignmentResult",
     "RawToken",
     "Reason",
+    "TableCell",
+    "TableColumn",
     "Token",
     "UnknownLanguageError",
+    "VariantGraph",
     "__version__",
     "align",
+    "align_multi",
     "get_language",
     "list_languages",
     "register_language",

@@ -1,0 +1,366 @@
+"""Multi-witness POA merge: sequence-vs-graph alignment + graph update."""
+
+from __future__ import annotations
+
+import statistics
+
+from tracealign.align import AlignerConfig
+from tracealign.align.needleman_wunsch import _dp_score
+from tracealign.lang.base import LanguagePack
+from tracealign.model import Token
+from tracealign.multi.graph import GraphEdge, GraphNode, VariantGraph
+from tracealign.score.tiered import tiered_score
+
+
+NEG_INF = float("-inf")
+
+
+def node_match_score(
+    token: Token,
+    node: GraphNode,
+    pack: LanguagePack,
+    mode: str = "max",
+) -> float:
+    """Aggregate score for matching `token` against the constituents of `node`.
+
+    `mode` is one of "max" (default), "mean", or "min". The per-constituent
+    score is the tiered pairwise score mapped to the DP scale [-1, +1] by
+    the same convention as v0.1's pairwise aligner.
+    """
+    if not node.tokens:
+        # Sentinel node — never matches a real token
+        return float("-inf")
+
+    scores = [_dp_score(tiered_score(token, t, pack).score) for t in node.tokens.values()]
+    if mode == "max":
+        return max(scores)
+    if mode == "min":
+        return min(scores)
+    if mode == "mean":
+        return statistics.mean(scores)
+    raise ValueError(f"unknown node_match mode: {mode}")
+
+
+def _topological_node_ids(graph) -> list[str]:
+    """Kahn's algorithm topological sort over the graph's nodes.
+
+    Returns node ids in topological order, with stable ordering by node id
+    among nodes with the same depth to keep the algorithm deterministic.
+    """
+    incoming: dict[str, set[str]] = {n.id: set() for n in graph.nodes}
+    outgoing: dict[str, list[str]] = {n.id: [] for n in graph.nodes}
+    for edge in graph.edges:
+        incoming[edge.target_id].add(edge.source_id)
+        outgoing[edge.source_id].append(edge.target_id)
+
+    # Sources have no incoming edges
+    ready = sorted([nid for nid, srcs in incoming.items() if not srcs])
+    out: list[str] = []
+    while ready:
+        nid = ready.pop(0)
+        out.append(nid)
+        # Outgoing edges sorted for determinism
+        for tgt in sorted(outgoing[nid]):
+            incoming[tgt].discard(nid)
+            if not incoming[tgt]:
+                # Insert into ready in sorted order
+                import bisect
+                bisect.insort(ready, tgt)
+    return out
+
+
+def _run_poa_dp(
+    seq,
+    graph,
+    pack: LanguagePack,
+    pairwise_cfg: AlignerConfig,
+    node_match_mode: str,
+    gap_penalty: float,
+) -> dict:
+    """Forward DP for sequence-vs-graph alignment.
+
+    Implements the three POA transitions over a topologically ordered DAG:
+
+      * match  — consume ``seq[i]`` and advance from a predecessor of ``nid``
+        to ``nid``; scored by :func:`node_match_score`.
+      * insert — consume ``seq[i]`` but stay at ``nid``; cost ``gap_penalty``.
+      * delete — advance from a predecessor of ``nid`` to ``nid`` without
+        consuming a sequence token; cost ``gap_penalty`` for real nodes,
+        free when either endpoint is the START or END sentinel.
+
+    Sentinel transitions are free so that reaching END after exactly ``m``
+    consumed sequence tokens does not pay an extra penalty.
+
+    Returns a dict with:
+      * ``dp``         — ``dp[i][node_id]`` = best score reaching ``node_id``
+        after consuming ``i`` sequence tokens.
+      * ``bp``         — ``bp[i][node_id]`` = ``(op, prev_i, prev_node_id)``
+        backpointer or ``None``.
+      * ``best_score`` — the score at the END sentinel at ``i = len(seq)``.
+      * ``topo``       — topological list of node ids.
+    """
+    topo = _topological_node_ids(graph)
+    nodes_by_id = {n.id: n for n in graph.nodes}
+
+    incoming: dict[str, list[str]] = {nid: [] for nid in topo}
+    for edge in graph.edges:
+        incoming[edge.target_id].append(edge.source_id)
+    # Sort predecessors for determinism
+    for nid in incoming:
+        incoming[nid].sort()
+
+    m = len(seq)
+    dp: dict[int, dict[str, float]] = {
+        i: {nid: NEG_INF for nid in topo} for i in range(m + 1)
+    }
+    bp: dict[int, dict[str, tuple[str, int, str] | None]] = {
+        i: {nid: None for nid in topo} for i in range(m + 1)
+    }
+
+    # Start: dp[0][START] = 0
+    dp[0]["START"] = 0.0
+
+    def _is_sentinel(nid: str) -> bool:
+        return nid in ("START", "END")
+
+    for i in range(m + 1):
+        for nid in topo:
+            node = nodes_by_id[nid]
+
+            # Delete (skip this node): advance from prev_nid to nid without
+            # consuming a sequence token. Free at sentinels, otherwise
+            # gap_penalty. Processed first so match/insert at the same i can
+            # read the updated dp[i][nid].
+            for prev_nid in incoming[nid]:
+                if dp[i][prev_nid] == NEG_INF:
+                    continue
+                step = 0.0 if (_is_sentinel(nid) or _is_sentinel(prev_nid)) else gap_penalty
+                cand = dp[i][prev_nid] + step
+                if cand > dp[i][nid]:
+                    dp[i][nid] = cand
+                    bp[i][nid] = ("delete", i, prev_nid)
+
+            # Match: consume seq[i] AND advance from prev_nid to nid.
+            # Not allowed at START (no node before it) or END (no real tokens).
+            if i < m and nid not in ("START", "END"):
+                token = seq[i]
+                match_s = node_match_score(token, node, pack, mode=node_match_mode)
+                if match_s != NEG_INF:
+                    for prev_nid in incoming[nid]:
+                        if dp[i][prev_nid] == NEG_INF:
+                            continue
+                        cand = dp[i][prev_nid] + match_s
+                        if cand > dp[i + 1][nid]:
+                            dp[i + 1][nid] = cand
+                            bp[i + 1][nid] = ("match", i, prev_nid)
+
+            # Insertion in seq: consume seq[i] but stay at this node.
+            # Not allowed at START (we never sit on START while consuming).
+            if i < m and nid != "START":
+                if dp[i][nid] != NEG_INF:
+                    cand = dp[i][nid] + gap_penalty
+                    if cand > dp[i + 1][nid]:
+                        dp[i + 1][nid] = cand
+                        bp[i + 1][nid] = ("insert", i, nid)
+
+    best_score = dp[m]["END"]
+    return {"dp": dp, "bp": bp, "best_score": best_score, "topo": topo}
+
+
+def _traceback_ops(dp_result: dict) -> list[tuple[str, int, str, str]]:
+    """Walk the backpointer table from (m, END) to (0, START).
+
+    Returns a list of ops, each a tuple (op_kind, seq_index, prev_node_id, curr_node_id),
+    in forward order (from START toward END). `op_kind` is "match", "insert", or "delete".
+    """
+    bp = dp_result["bp"]
+    dp = dp_result["dp"]
+    topo = dp_result["topo"]  # noqa: F841 — kept for symmetry with dp_result schema
+
+    m = max(dp.keys())
+    i = m
+    cur_nid = "END"
+    ops_rev: list[tuple[str, int, str, str]] = []
+    while not (i == 0 and cur_nid == "START"):
+        back = bp[i][cur_nid]
+        if back is None:
+            # Reached an unreachable state — should not happen for valid input
+            break
+        op, prev_i, prev_nid = back
+        ops_rev.append((op, prev_i, prev_nid, cur_nid))
+        i = prev_i
+        cur_nid = prev_nid
+    return list(reversed(ops_rev))
+
+
+def align_sequence_to_graph(
+    seq: list[Token],
+    witness_id: str,
+    graph: VariantGraph,
+    pack: LanguagePack,
+    pairwise_cfg: AlignerConfig,
+    node_match_mode: str,
+    gap_penalty: float,
+) -> VariantGraph:
+    """Align a new witness sequence against an existing graph and merge.
+
+    Returns a new VariantGraph that includes the existing graph plus the new
+    witness's trail through it (matches grow existing nodes, insertions add
+    new nodes, deletions cause the new witness's edge to bypass nodes).
+    """
+    dpr = _run_poa_dp(seq, graph, pack, pairwise_cfg, node_match_mode, gap_penalty)
+    ops = _traceback_ops(dpr)
+
+    nodes_by_id = {n.id: n for n in graph.nodes}
+    edges = list(graph.edges)
+    nodes = list(graph.nodes)
+
+    # Track the last node id the new witness has reached
+    last_node_id = "START"
+    inserted_count = 0
+
+    def _new_node_id(count: int) -> str:
+        # Use a stable scheme keyed off insertion order; will be renumbered
+        # after the final topological sort.
+        return f"new:{count:06d}"
+
+    for op, _prev_i, _prev_nid, curr_nid in ops:
+        if op == "match":
+            # Merge seq[_prev_i] into nodes_by_id[curr_nid].tokens[witness_id].
+            seq_idx_consumed = _prev_i
+            target_node = nodes_by_id[curr_nid]
+            new_tokens = dict(target_node.tokens)
+            new_tokens[witness_id] = seq[seq_idx_consumed]
+            updated = GraphNode(id=target_node.id, tokens=new_tokens)
+            for k, n in enumerate(nodes):
+                if n.id == target_node.id:
+                    nodes[k] = updated
+                    break
+            nodes_by_id[target_node.id] = updated
+            # Edge from last_node_id to curr_nid: add witness_id
+            edges = _add_witness_to_edge(edges, last_node_id, curr_nid, witness_id)
+            last_node_id = curr_nid
+
+        elif op == "insert":
+            # Create a new node holding only seq[_prev_i] under witness_id.
+            seq_idx = _prev_i
+            new_id = _new_node_id(inserted_count)
+            inserted_count += 1
+            new_node = GraphNode(id=new_id, tokens={witness_id: seq[seq_idx]})
+            nodes.append(new_node)
+            nodes_by_id[new_id] = new_node
+            # Edge from last_node_id to new_id
+            edges.append(
+                GraphEdge(
+                    source_id=last_node_id,
+                    target_id=new_id,
+                    witnesses={witness_id},
+                )
+            )
+            last_node_id = new_id
+
+        elif op == "delete":
+            # The new witness skips curr_nid; on the next op we'll add the
+            # edge directly from last_node_id to the next node touched.
+            pass
+
+    # Final edge to END
+    edges = _add_witness_to_edge(edges, last_node_id, "END", witness_id)
+
+    # Renumber via topological sort to get stable ids
+    new_witness_ids = sorted(set(graph.witness_ids) | {witness_id})
+    intermediate = VariantGraph(nodes=nodes, edges=edges, witness_ids=new_witness_ids)
+    return _renumber_topologically(intermediate)
+
+
+def _add_witness_to_edge(
+    edges: list[GraphEdge],
+    source_id: str,
+    target_id: str,
+    witness_id: str,
+) -> list[GraphEdge]:
+    """Add `witness_id` to an existing edge or create a new one with just it."""
+    out: list[GraphEdge] = []
+    found = False
+    for e in edges:
+        if e.source_id == source_id and e.target_id == target_id:
+            out.append(
+                GraphEdge(
+                    source_id=source_id,
+                    target_id=target_id,
+                    witnesses=e.witnesses | {witness_id},
+                )
+            )
+            found = True
+        else:
+            out.append(e)
+    if not found:
+        out.append(
+            GraphEdge(
+                source_id=source_id,
+                target_id=target_id,
+                witnesses={witness_id},
+            )
+        )
+    return out
+
+
+def _renumber_topologically(graph: VariantGraph) -> VariantGraph:
+    """Re-assign stable node ids ``n:NNNNNN`` based on the topological order."""
+    topo = _topological_node_ids(graph)
+    id_map: dict[str, str] = {}
+    content_index = 0
+    for old_id in topo:
+        if old_id == "START":
+            id_map[old_id] = "START"
+        elif old_id == "END":
+            id_map[old_id] = "END"
+        else:
+            id_map[old_id] = f"n:{content_index:06d}"
+            content_index += 1
+
+    nodes_by_old_id = {n.id: n for n in graph.nodes}
+    new_nodes = [
+        GraphNode(id=id_map[old_id], tokens=nodes_by_old_id[old_id].tokens)
+        for old_id in topo
+    ]
+    new_edges = [
+        GraphEdge(
+            source_id=id_map[e.source_id],
+            target_id=id_map[e.target_id],
+            witnesses=e.witnesses,
+        )
+        for e in graph.edges
+    ]
+    return VariantGraph(
+        nodes=new_nodes,
+        edges=new_edges,
+        witness_ids=graph.witness_ids,
+    )
+
+
+from tracealign.multi.guide_tree import GuideTree, post_order_witness_ids  # noqa: E402
+
+
+def progressive_merge(
+    witnesses: dict[str, list[Token]],
+    tree: GuideTree,
+    pack: LanguagePack,
+    pairwise_cfg: AlignerConfig,
+    node_match_mode: str = "max",
+    gap_penalty: float = -2.0,
+) -> VariantGraph:
+    """Merge all witnesses into one variant graph in canonical tree-order."""
+    order = post_order_witness_ids(tree)
+    if not order:
+        return VariantGraph(nodes=[], edges=[], witness_ids=[])
+
+    # Initialise with the first witness as a linear chain
+    g = VariantGraph.from_sequence(order[0], witnesses[order[0]])
+
+    for wid in order[1:]:
+        g = align_sequence_to_graph(
+            witnesses[wid], wid, g, pack, pairwise_cfg, node_match_mode, gap_penalty
+        )
+
+    return g
