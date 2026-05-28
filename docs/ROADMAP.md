@@ -1,111 +1,100 @@
 # TRACE Roadmap
 
-**Last updated:** 2026-05-06
-**Current branch:** `feature/v0.1-design-spec`
+**Last updated:** 2026-05-27
+**Current release:** [0.2.0](https://github.com/bsesic/trace/releases/tag/0.2.0) — live on [PyPI](https://pypi.org/project/tracealign/), archived on [Zenodo](https://doi.org/10.5281/zenodo.20315408), documented on [Read the Docs](https://tracealign.readthedocs.io)
 
-This document tracks the high-level status of TRACE and the order in which the
-sub-projects are being built. For the full design see
-`docs/superpowers/specs/2026-04-28-trace-v0.1-design.md`. For the v0.1 task
-breakdown see `docs/superpowers/plans/2026-04-28-trace-v0.1.md`.
+This roadmap is in two layers:
+
+1. **Where we are** — the released foundation (v0.1.x).
+2. **Where we're going** — the long-term research vision: a complete computational textual criticism platform for theology and Jewish studies.
+
+For the v0.1 design rationale see [`docs/superpowers/specs/2026-04-28-trace-v0.1-design.md`](superpowers/specs/2026-04-28-trace-v0.1-design.md). Each future stage will get its own spec / plan documents alongside it.
 
 ---
 
-## v0.1 — Foundation
+## v0.1 — Foundation (released 2026-05-20)
 
-**Goal:** Pairwise philological alignment with a Hebrew language pack, tokenizer,
-semi-global Needleman–Wunsch with affine gaps and abbreviation-span lookahead,
-and JSON / TEI / eScriptorium I/O.
+**Goal achieved:** Pairwise philological alignment with a Hebrew language pack, tokenizer pipeline, semi-global Needleman–Wunsch with affine gaps and abbreviation-span lookahead, JSON / TEI / eScriptorium I/O, full Read-the-Docs documentation, Zenodo archive.
 
-### Status: 21 of 21 implementation tasks complete (106 tests passing, flake8 clean) — ready for final review + merge
+109 tests passing across Python 3.10 / 3.11 / 3.12; flake8 clean.
 
-| # | Task | Status |
+Released artefacts:
+
+- [`tracealign` on PyPI](https://pypi.org/project/tracealign/) (0.1.0 / 0.1.1 / 0.1.2 / 0.1.3)
+- [Zenodo concept DOI](https://doi.org/10.5281/zenodo.20315408) (always-latest)
+- [Sphinx documentation](https://tracealign.readthedocs.io)
+- [GitHub Actions CI](https://github.com/bsesic/trace/actions) on every push and PR
+
+---
+
+## Long-term vision: computational textual criticism for theology and Jewish studies
+
+The full ambition spans ten stages, each its own brainstorm → spec → plan → implementation cycle. Stages are listed in roughly the order they unlock subsequent stages; staging numbers are guidance, not strict dependencies.
+
+| # | Stage | Capability it unlocks | Status |
+|---|---|---|---|
+| 1 | **Pairwise aligner + Hebrew pack** | TRACE v0.1 — paarweise Alignment-Kernel | ✅ released 0.1.3 |
+| 2 | **Master alignment graph** | Simultaneous multi-witness alignment (Sifra full witness set, Tanhuma) | ✅ released 0.2.0 |
+| 3 | **Geniza fragment anchor detection** | Matching small fragments against a large candidate pool (hundreds of Sifra Genizah fragments) | planned |
+| 4 | **Text-reuse detection** | Finding recurring phrases and verbatim citations across a corpus (biblical citations in rabbinic literature, recurring rabbinic formulae) | planned |
+| 5 | **Apparatus / critical-edition generation** | Producing publication-grade critical editions (lemmas, sigla, Fließtext) directly from alignment output | planned |
+| 6 | **Cross-tradition (Hexapla-style)** | MT × LXX × Vulgata × Targume parallel alignment (Strong's-lemma layer first, surface-form cross-script later) | planned |
+| 7 | **Stemmatic reconstruction** | Inferring the genealogical tree of witnesses from alignment output; phylogenetic-network support for contaminated traditions | planned |
+| 8 | **Allusion + echo detection** | Non-verbatim citation detection via semantic similarity (Pesher exegesis, NT-OT allusions, midrashic reformulation) | planned |
+| 9 | **Cross-genre citation graphs** | Tracking how the same source is cited across Sifra, Tosefta, Yerushalmi, Bavli, Tanhuma, medieval commentaries — a citation graph spanning the rabbinic corpus | planned |
+| 10 | **Multi-millennial reception history** | A reception-history graph for individual biblical verses across MT → LXX → Targum → Pesher → NT → patristic → rabbinic → medieval → modern exegesis | planned (vision crown) |
+
+### Language packs
+
+| Pack | Status | Unlocks |
 |---|---|---|
-| 0 | Bootstrap project tooling (pyproject, flake8, pytest) | ✅ |
-| 1 | Data model — Token, Reason, Match | ✅ |
-| 2 | Data model — AlignmentResult, Lexica | ✅ |
-| — | Package rename `trace` → `tracealign` (stdlib-shadow fix) | ✅ |
-| 3 | Tokenizer base — RawToken, EditorialBracketRules | ✅ |
-| 4 | Generic plaintext pretokenize | ✅ |
-| 5 | Language-pack ABC + registry | ✅ |
-| 6 | Hebrew pack — tokenizer hooks (gershayim mid-word, maqqef split) | ✅ |
-| 7 | Hebrew pack — normalizer (niqqud strip, skeleton, abbrev candidates) | ✅ |
-| 8 | Hebrew pack — seed lexica + Lexica.load | ✅ |
-| 9 | Hebrew pack — scoring tiers + auto-registration | ✅ |
-| 10 | Generic tiered scorer | ✅ |
-| 11 | Aligner — basic Gotoh DP with affine gaps | ✅ |
-| 12 | Aligner — semi-global modification (free terminal gaps) | ✅ |
-| 13 | Aligner — affine gap verification tests | ✅ |
-| 14 | Aligner — abbreviation-span lookahead (primary + continuation) | ✅ |
-| 15 | Aligner — `align()` wrapper with summary + total_score | ✅ |
-| 16 | Public API in `tracealign.__init__` | ✅ |
-| 17 | I/O — JSON dump/load for `AlignmentResult` | ✅ |
-| 18 | I/O — eScriptorium JSON importer | ✅ |
-| 19 | I/O — TEI XML importer | ✅ |
-| 20 | E2E synthetic Hebrew golden file | ✅ |
-| — | Final code review + merge to `develop` | ⏳ next |
+| Hebrew (`hbo`) | ✅ released 0.1.3 | Sifra, Mishna, Tanhuma, Hebrew Bible (MT) |
+| Aramaic (`arc`) | planned | Targumim, Talmud Bavli/Yerushalmi, Qumran (mixed corpora), Biblical Aramaic |
+| Greek (`grc`) | planned | LXX, NT, patristic |
+| Latin (`lat`) | planned | Vulgata, patristic, scholastic |
+| Arabic (`ara`) | possible | broader Semitic studies, Judaeo-Arabic texts |
+| Persian (`fas`) | possible | Judaeo-Persian, broader Iranian Jewish texts |
 
-### v0.1 Acceptance Criteria
+### Corpus importers
 
-Tracked in the design spec §8. The remaining tasks (16–20) cover the public
-surface and validation that all 9 `Reason` values fire end-to-end on a
-synthetic Hebrew witness pair.
+| Importer | Status |
+|---|---|
+| Plaintext | ✅ |
+| JSON (round-trip) | ✅ |
+| eScriptorium JSON | ✅ |
+| TEI XML | ✅ |
+| Sefaria API | planned |
+| OpenScriptures Hebrew Bible (OSHB) | planned |
+| STEPBible | planned |
+| SQE (Scripta Qumranica Electronica) | planned |
+| Sifra Django backend | planned (long-term, after the core stages stabilise) |
 
----
+### Short-term mini-demos (do not require new sub-projects)
 
-## Long-Term Decomposition
+These bridge v0.1 to the larger sub-projects and produce concrete public artefacts:
 
-TRACE is a general-purpose philological alignment library. The full vision —
-not just v0.1 — covers five sub-projects, each with its own brainstorming →
-spec → plan → implementation cycle.
-
-| # | Sub-project | Status |
-|---|---|---|
-| 1 | **Pairwise aligner + Hebrew normalization + tokenization** | v0.1 — in progress |
-| 2 | Master alignment graph / incremental multi-witness alignment | future |
-| 3 | Geniza fragment anchor detection (matching fragments against ~150 000 candidates) | future |
-| 4 | Text-reuse detection (recurring-phrase alignment, e.g. recurring rabbinic formulae) | future |
-| 5 | Apparatus / critical-edition generation (lemmas, sigla, Fließtext output) | future |
-
-Each later sub-project starts with its own brainstorming session and gets its
-own spec under `docs/superpowers/specs/` and plan under
-`docs/superpowers/plans/`.
-
-### v0.2 Candidates (post-v0.1, not yet specced)
-
-- **Multi-language packs:** Arabic and Greek as second and third reference
-  language packs, validating that the language-agnostic core holds up.
-- **Learned scoring weights:** record full feature vectors per match (currently
-  only `(score, reason, details)` is returned), enabling later training of a
-  weighted match function.
-- **Custom editorial-bracket rules per project:** today the defaults are
-  hard-coded; users override via `EditorialBracketRules`. v0.2 may ship
-  per-project preset bundles.
-- **Performance pass:** if real-world Sifra/Geniza alignments exceed the
-  performance sanity targets in the v0.1 spec (500×500 < 1 s, 2 000×2 000 < 30 s),
-  add NumPy vectorization and/or a Cython hot path for the DP inner loop.
+- **Sefaria-Mishna pairwise demo** — Kaufmann vs. Vilna of a single mishna, end-to-end through the Hebrew pack.
+- **Strong's Hexapla-light** — Genesis 1:1 in MT / LXX / Vulgata / Onkelos, lemma-aligned via Strong's numbers (no new packs needed).
+- **Text-reuse mini-spike** — Tanakh citations in Mishna Berakhot 1, via a naïve n-gram index plus the existing aligner as a verifier.
 
 ---
 
-## Branch Model
+## Branch model
 
-- `main` — stable releases. Updated only via merge from `develop` when a
-  release is cut. Never pushed to directly.
-- `develop` — integration branch holding the latest development work.
-- `feature/<topic>` — branched off `develop`, merged back into `develop`.
-  v0.1 work lives on `feature/v0.1-design-spec`.
+| Branch | Role |
+|---|---|
+| `main` | Stable releases. Updated only via merge from `develop` when a release is cut. Tags are cut here (`0.1.0`, `0.1.1`, `0.1.2`, `0.1.3`, ...). |
+| `develop` | Integration branch with the latest development work. |
+| `feature/<topic>` | Branched off `develop`, merged back into `develop` via PR. |
+| `release/<version>` | Short-lived branch for cherry-picking changes into a tagged release. |
 
-PRs target `develop`. v0.1 ships when Tasks 16–20 are merged into `develop`
-and the acceptance criteria from spec §8 are met, at which point `develop`
-merges into `main` and a `0.1.0` tag is cut.
+Pull requests target `develop`.
 
----
-
-## Quality Gates
+## Quality gates
 
 Every commit must pass before merge:
 
-1. **Linting** — `flake8 src/ tests/` reports zero issues (PEP 8 compliant).
-2. **Tests** — full pytest suite passes.
+1. **Linting** — `flake8 src/ tests/` reports zero issues.
+2. **Tests** — full pytest suite passes locally and on the GitHub Actions matrix (Python 3.10, 3.11, 3.12).
 
-Both are enforced locally and in CI. No commits with AI-assistant attribution
-in commit messages, PR descriptions, or any other shipping artefact.
+No commits with AI-assistant attribution in commit messages, PR descriptions, or any shipping artefact.
