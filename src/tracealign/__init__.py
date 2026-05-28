@@ -16,6 +16,7 @@ from tracealign.lang.registry import (
     register_language,
 )
 from tracealign.model import AlignmentResult, Lexica, Match, Reason, Token
+from tracealign.multi.api import align_multi
 from tracealign.tokenize.base import (
     DEFAULT_EDITORIAL_RULES,
     EditorialBracketRules,
@@ -129,6 +130,7 @@ __all__ = [
     "UnknownLanguageError",
     "__version__",
     "align",
+    "align_multi",
     "get_language",
     "list_languages",
     "register_language",
