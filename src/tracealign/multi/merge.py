@@ -8,7 +8,7 @@ from tracealign.align import AlignerConfig
 from tracealign.align.needleman_wunsch import _dp_score
 from tracealign.lang.base import LanguagePack
 from tracealign.model import Token
-from tracealign.multi.graph import GraphNode
+from tracealign.multi.graph import GraphEdge, GraphNode, VariantGraph
 from tracealign.score.tiered import tiered_score
 
 
@@ -191,3 +191,149 @@ def _traceback_ops(dp_result: dict) -> list[tuple[str, int, str, str]]:
         i = prev_i
         cur_nid = prev_nid
     return list(reversed(ops_rev))
+
+
+def align_sequence_to_graph(
+    seq: list[Token],
+    witness_id: str,
+    graph: VariantGraph,
+    pack: LanguagePack,
+    pairwise_cfg: AlignerConfig,
+    node_match_mode: str,
+    gap_penalty: float,
+) -> VariantGraph:
+    """Align a new witness sequence against an existing graph and merge.
+
+    Returns a new VariantGraph that includes the existing graph plus the new
+    witness's trail through it (matches grow existing nodes, insertions add
+    new nodes, deletions cause the new witness's edge to bypass nodes).
+    """
+    dpr = _run_poa_dp(seq, graph, pack, pairwise_cfg, node_match_mode, gap_penalty)
+    ops = _traceback_ops(dpr)
+
+    nodes_by_id = {n.id: n for n in graph.nodes}
+    edges = list(graph.edges)
+    nodes = list(graph.nodes)
+
+    # Track the last node id the new witness has reached
+    last_node_id = "START"
+    inserted_count = 0
+
+    def _new_node_id(count: int) -> str:
+        # Use a stable scheme keyed off insertion order; will be renumbered
+        # after the final topological sort.
+        return f"new:{count:06d}"
+
+    for op, _prev_i, _prev_nid, curr_nid in ops:
+        if op == "match":
+            # Merge seq[_prev_i] into nodes_by_id[curr_nid].tokens[witness_id].
+            seq_idx_consumed = _prev_i
+            target_node = nodes_by_id[curr_nid]
+            new_tokens = dict(target_node.tokens)
+            new_tokens[witness_id] = seq[seq_idx_consumed]
+            updated = GraphNode(id=target_node.id, tokens=new_tokens)
+            for k, n in enumerate(nodes):
+                if n.id == target_node.id:
+                    nodes[k] = updated
+                    break
+            nodes_by_id[target_node.id] = updated
+            # Edge from last_node_id to curr_nid: add witness_id
+            edges = _add_witness_to_edge(edges, last_node_id, curr_nid, witness_id)
+            last_node_id = curr_nid
+
+        elif op == "insert":
+            # Create a new node holding only seq[_prev_i] under witness_id.
+            seq_idx = _prev_i
+            new_id = _new_node_id(inserted_count)
+            inserted_count += 1
+            new_node = GraphNode(id=new_id, tokens={witness_id: seq[seq_idx]})
+            nodes.append(new_node)
+            nodes_by_id[new_id] = new_node
+            # Edge from last_node_id to new_id
+            edges.append(
+                GraphEdge(
+                    source_id=last_node_id,
+                    target_id=new_id,
+                    witnesses={witness_id},
+                )
+            )
+            last_node_id = new_id
+
+        elif op == "delete":
+            # The new witness skips curr_nid; on the next op we'll add the
+            # edge directly from last_node_id to the next node touched.
+            pass
+
+    # Final edge to END
+    edges = _add_witness_to_edge(edges, last_node_id, "END", witness_id)
+
+    # Renumber via topological sort to get stable ids
+    new_witness_ids = sorted(set(graph.witness_ids) | {witness_id})
+    intermediate = VariantGraph(nodes=nodes, edges=edges, witness_ids=new_witness_ids)
+    return _renumber_topologically(intermediate)
+
+
+def _add_witness_to_edge(
+    edges: list[GraphEdge],
+    source_id: str,
+    target_id: str,
+    witness_id: str,
+) -> list[GraphEdge]:
+    """Add `witness_id` to an existing edge or create a new one with just it."""
+    out: list[GraphEdge] = []
+    found = False
+    for e in edges:
+        if e.source_id == source_id and e.target_id == target_id:
+            out.append(
+                GraphEdge(
+                    source_id=source_id,
+                    target_id=target_id,
+                    witnesses=e.witnesses | {witness_id},
+                )
+            )
+            found = True
+        else:
+            out.append(e)
+    if not found:
+        out.append(
+            GraphEdge(
+                source_id=source_id,
+                target_id=target_id,
+                witnesses={witness_id},
+            )
+        )
+    return out
+
+
+def _renumber_topologically(graph: VariantGraph) -> VariantGraph:
+    """Re-assign stable node ids ``n:NNNNNN`` based on the topological order."""
+    topo = _topological_node_ids(graph)
+    id_map: dict[str, str] = {}
+    content_index = 0
+    for old_id in topo:
+        if old_id == "START":
+            id_map[old_id] = "START"
+        elif old_id == "END":
+            id_map[old_id] = "END"
+        else:
+            id_map[old_id] = f"n:{content_index:06d}"
+            content_index += 1
+
+    nodes_by_old_id = {n.id: n for n in graph.nodes}
+    new_nodes = [
+        GraphNode(id=id_map[old_id], tokens=nodes_by_old_id[old_id].tokens)
+        for old_id in topo
+    ]
+    new_edges = [
+        GraphEdge(
+            source_id=id_map[e.source_id],
+            target_id=id_map[e.target_id],
+            witnesses=e.witnesses,
+        )
+        for e in graph.edges
+    ]
+    return VariantGraph(
+        nodes=new_nodes,
+        edges=new_edges,
+        witness_ids=graph.witness_ids,
+    )
