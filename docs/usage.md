@@ -61,6 +61,66 @@ for m in result.matches:
 
 `m.details` carries Reason-specific extra information. For ABBREVIATION matches that's `role: "primary"` or `"continuation"`, the `expansion` string (e.g. `"רבי ישמעאל"`), and `span_size`. For ORTHOGRAPHIC matches it's the rapidfuzz ratio.
 
+## Multi-witness alignment
+
+`tracealign.align_multi(witnesses, lang, config=None)` aligns N witness sequences simultaneously and returns a canonical variant graph plus a derived aligned table.
+
+```python
+import tracealign
+
+witnesses = {
+    "W1": tracealign.tokenize("שלום עולם רבי דוד אמר", lang="hbo", seq_label="W1"),
+    "W2": tracealign.tokenize("שלום עולם רבי דוד אמר", lang="hbo", seq_label="W2"),
+    "W3": tracealign.tokenize("שלום עולם ר\"י אמר", lang="hbo", seq_label="W3"),
+}
+
+result = tracealign.align_multi(witnesses, lang="hbo")
+
+print(result.guide_tree.format_text())
+print(result.table.format_text())
+
+for node in result.graph.variants():
+    readings = {wid: t.text for wid, t in node.tokens.items()}
+    print(node.id, readings)
+```
+
+The result exposes:
+
+| Attribute | Description |
+|---|---|
+| `result.graph` | The canonical `VariantGraph` (DAG). Use `witness_path(w)` to get one witness's trail; `variants()` to iterate variant loci. |
+| `result.table` | The derived `AlignedTable`. Use `re_anchor(witness_id)` to render with any witness as the reference column. |
+| `result.guide_tree` | The UPGMA `GuideTree`. Carries the original distance matrix for downstream use. |
+| `result.witness_ids` | List of witness ids, sorted lexicographically. |
+| `result.summary` | Aggregated Reason counts (may be empty in 0.2.0; richer aggregation in later patches). |
+| `result.params` | Configuration snapshot plus `trace_version` and `language_pack_version`. |
+
+### Configuration
+
+```python
+from tracealign import MultiAlignerConfig
+from tracealign.align import AlignerConfig
+
+cfg = MultiAlignerConfig(
+    pairwise=AlignerConfig(gap_open=-2.5),
+    node_match="max",                    # also "mean" or "min"
+    guide_tree_method="upgma",
+    gap_penalty_multi=-2.0,
+)
+result = tracealign.align_multi(witnesses, lang="hbo", config=cfg)
+```
+
+### Persistence
+
+```python
+from tracealign.io import multi_result as mr_io
+
+mr_io.dump(result, "alignment.json")
+restored = mr_io.load("alignment.json")
+```
+
+JSON round-trip preserves the entire result including the guide tree's distance matrix.
+
 ## I/O
 
 ### JSON round-trip

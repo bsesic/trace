@@ -88,4 +88,43 @@ Not specced yet. Candidates from the v0.1 spec:
 - Per-project editorial-bracket preset bundles.
 - Performance pass (NumPy vectorization or Cython hot path).
 
-Plus the four long-term sub-projects: master alignment graph, Geniza anchor detection, text-reuse, apparatus generation.
+The master alignment graph (multi-witness alignment) shipped as v0.2 — see below. Future long-term stages: Geniza anchor detection, text-reuse, apparatus generation, cross-tradition Hexapla, stemmatic reconstruction, allusion detection, citation graphs, reception history.
+
+## How does multi-witness alignment differ from pairwise?
+
+`tracealign.align()` aligns exactly two witnesses. `tracealign.align_multi()` (v0.2) aligns N witnesses at once into a single canonical structure — a variant graph (DAG) where every witness has a trail through the graph, plus a derived aligned table view. Variant loci surface as nodes whose constituent witnesses disagree.
+
+For two witnesses the two paths give similar information; for three or more the multi-witness graph is much more useful than running every pair separately, because it gives one consistent set of variant positions rather than O(N²) overlapping pairwise alignments.
+
+## Is `align_multi` deterministic?
+
+Yes. The result is independent of the dict insertion order of the witnesses. Three sources of order-stability are pinned by tests:
+
+1. `pairwise_distances` sorts witness ids lexicographically before computing the matrix.
+2. UPGMA tie-breaking uses the canonical `(min, max)` lexicographic order of cluster members.
+3. The topological sort during sequence-vs-graph alignment is stable with respect to node id.
+
+A dedicated property test (`test_permutation_invariance`) re-runs `align_multi` with reordered inputs and asserts that witness paths and variant loci are identical.
+
+## How big can multi-witness alignments get?
+
+The v0.2 target is Sifra-scale: 5–15 witnesses, 1000–5000 tokens each. Larger witness sets (NT-scale, hundreds of witnesses) need anchor-based decomposition, which is a future stage. Geniza fragments specifically are handled in their own future stage (anchor detection against a large candidate pool), not by adding them all to one master graph.
+
+## Why UPGMA and not Neighbor-Joining for the guide tree?
+
+UPGMA is simpler and gives a binary tree with clear cumulative-distance heights — useful as a draft stemma input for the eventual stemmatic-reconstruction stage. UPGMA's "molecular clock" assumption is a known limitation in phylogenetics but is acceptable for ordering the merge sequence in v0.2. Neighbor-Joining is a future v0.x candidate when proper stemmatic reconstruction goes live.
+
+## Can I add a new witness to an existing alignment incrementally?
+
+Not in v0.2.0 — `align_multi` builds the entire graph in a single call. An incremental "add one witness" API is a v0.2.x candidate; it builds naturally on the existing `align_sequence_to_graph` primitive but requires API design (e.g. should the guide tree be re-balanced? should existing alignment relationships be allowed to change?). Open a discussion or issue if you need this.
+
+## How do I persist a multi-witness result?
+
+```python
+from tracealign.io import multi_result as mr_io
+
+mr_io.dump(result, "alignment.json")
+restored = mr_io.load("alignment.json")
+```
+
+`tracealign.io.multi_result` is a dedicated module separate from `tracealign.io.result` (the pairwise JSON I/O). The round-trip preserves the entire result, including the guide tree's distance matrix — important for later stages that reuse it.

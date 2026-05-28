@@ -198,3 +198,55 @@ src/tracealign/
     escriptorium.py      # eScriptorium JSON importer
     tei.py               # TEI XML importer
 ```
+
+## Multi-witness alignment (v0.2)
+
+`align_multi` extends the pairwise aligner to N witnesses. The pipeline is three-phase:
+
+### Phase 1 — Pairwise distances
+
+Every pair of witnesses is aligned with `tracealign.align()` (the v0.1 pairwise aligner) and the distance is computed as `1 − total_score`. The result is a symmetric `N × N` distance matrix; the diagonal is zero. Witness ids are sorted lexicographically before computing, making the matrix independent of dict insertion order.
+
+### Phase 2 — UPGMA guide tree
+
+A binary guide tree is built from the distance matrix using **UPGMA** (Unweighted Pair Group Method with Arithmetic Mean). At every iteration the closest cluster pair is merged. Ties are broken on the canonical `(min, max)` lexicographic order of cluster members, guaranteeing determinism. The tree's `height` field carries the cumulative UPGMA distance — a starting point for later stemmatic work.
+
+### Phase 3 — Progressive POA-based merge
+
+The guide tree is walked in post-order to produce a canonical merge sequence (closely-related witnesses are merged first). The first witness seeds the graph as a linear chain. Each subsequent witness is aligned to the current graph via **partial-order alignment (POA)** — a DP over the topologically sorted graph nodes. Three transitions:
+
+| Transition | Effect on graph |
+|---|---|
+| Match | Merge the new token into an existing node's `tokens[witness_id]`; extend the witness set on the incoming edge. |
+| Insertion in sequence (gap in graph) | Add a new node holding only this witness's token; new edge `prev → new`. |
+| Deletion (skip graph node) | The new witness's path bypasses this node — recorded by an edge that skips it. |
+
+`node_match_score` aggregates the per-constituent tiered score across the witnesses already in the target node. The default mode `"max"` is permissive (CollateX-aligned); `"mean"` and `"min"` are configurable.
+
+### Correctness guarantees
+
+Two properties are pinned by tests:
+
+- **Lossless reconstruction.** For every input witness `w`, the path through the result graph yields exactly the original token sequence.
+- **Permutation invariance.** The same set of witnesses in any input dict order produces the same alignment (same witness paths, same variant loci).
+
+### Data flow
+
+```
+align_multi(witnesses, lang, config)
+   │
+   ▼
+pairwise_distances        — Phase 1: O(N²/2) pairwise alignments
+   │
+   ▼
+build_upgma               — Phase 2: deterministic binary tree
+   │
+   ▼
+progressive_merge         — Phase 3: post-order POA-based merge
+   │
+   ▼
+VariantGraph
+   │
+   ├──► AlignedTable      — derived view, re-anchorable
+   └──► MultiAlignmentResult (graph + table + guide_tree + summary + params)
+```
