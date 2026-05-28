@@ -165,3 +165,29 @@ def _run_poa_dp(
 
     best_score = dp[m]["END"]
     return {"dp": dp, "bp": bp, "best_score": best_score, "topo": topo}
+
+
+def _traceback_ops(dp_result: dict) -> list[tuple[str, int, str, str]]:
+    """Walk the backpointer table from (m, END) to (0, START).
+
+    Returns a list of ops, each a tuple (op_kind, seq_index, prev_node_id, curr_node_id),
+    in forward order (from START toward END). `op_kind` is "match", "insert", or "delete".
+    """
+    bp = dp_result["bp"]
+    dp = dp_result["dp"]
+    topo = dp_result["topo"]  # noqa: F841 — kept for symmetry with dp_result schema
+
+    m = max(dp.keys())
+    i = m
+    cur_nid = "END"
+    ops_rev: list[tuple[str, int, str, str]] = []
+    while not (i == 0 and cur_nid == "START"):
+        back = bp[i][cur_nid]
+        if back is None:
+            # Reached an unreachable state — should not happen for valid input
+            break
+        op, prev_i, prev_nid = back
+        ops_rev.append((op, prev_i, prev_nid, cur_nid))
+        i = prev_i
+        cur_nid = prev_nid
+    return list(reversed(ops_rev))
