@@ -337,3 +337,30 @@ def _renumber_topologically(graph: VariantGraph) -> VariantGraph:
         edges=new_edges,
         witness_ids=graph.witness_ids,
     )
+
+
+from tracealign.multi.guide_tree import GuideTree, post_order_witness_ids  # noqa: E402
+
+
+def progressive_merge(
+    witnesses: dict[str, list[Token]],
+    tree: GuideTree,
+    pack: LanguagePack,
+    pairwise_cfg: AlignerConfig,
+    node_match_mode: str = "max",
+    gap_penalty: float = -2.0,
+) -> VariantGraph:
+    """Merge all witnesses into one variant graph in canonical tree-order."""
+    order = post_order_witness_ids(tree)
+    if not order:
+        return VariantGraph(nodes=[], edges=[], witness_ids=[])
+
+    # Initialise with the first witness as a linear chain
+    g = VariantGraph.from_sequence(order[0], witnesses[order[0]])
+
+    for wid in order[1:]:
+        g = align_sequence_to_graph(
+            witnesses[wid], wid, g, pack, pairwise_cfg, node_match_mode, gap_penalty
+        )
+
+    return g
