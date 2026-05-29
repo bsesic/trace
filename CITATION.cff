@@ -7,18 +7,19 @@ authors:
     given-names: Benjamin
     email: benjamin.schnabel@ephe.psl.eu
     affiliation: "École Pratique des Hautes Études (EPHE), Université PSL"
+    orcid: "https://orcid.org/0000-0002-9697-607X"
 repository-code: "https://github.com/bsesic/trace"
 url: "https://tracealign.readthedocs.io"
 license: MIT
-version: "0.1.2"
-date-released: "2026-05-20"
+version: "0.2.0"
+date-released: "2026-05-27"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.20315408"
     description: "Concept DOI — always resolves to the latest archived release."
   - type: doi
     value: "10.5281/zenodo.20315712"
-    description: "Version DOI for TRACE 0.1.3."
+    description: "Version DOI for TRACE 0.1.3 (will be replaced with the 0.2.0 archive DOI once Zenodo archives the GitHub Release)."
 keywords:
   - philology
   - textual-criticism
@@ -30,9 +31,12 @@ keywords:
   - manuscripts
   - tei
 abstract: >-
-  TRACE is a Python library for pairwise philological alignment with pluggable
-  language packs. It implements semi-global Needleman-Wunsch with affine gap
-  penalties (Gotoh) and a multi-token abbreviation-span lookahead, returning
-  alignment matches annotated with a tiered reason (exact, niqqud-stripped,
+  TRACE is a Python library for philological alignment with pluggable language
+  packs. It implements semi-global Needleman-Wunsch with affine gap penalties
+  (Gotoh) and a multi-token abbreviation-span lookahead for pairwise alignment,
+  returning matches annotated with a tiered reason (exact, niqqud-stripped,
   plene/defective, abbreviation, orthographic, insertion, omission, no-match).
-  The first shipped language pack covers Biblical and Rabbinic Hebrew.
+  Version 0.2 adds simultaneous multi-witness alignment that produces a canonical
+  variant graph plus a derived aligned table view, via pairwise distances, an
+  UPGMA guide tree, and partial-order alignment-based progressive merging. The
+  first shipped language pack covers Biblical and Rabbinic Hebrew.

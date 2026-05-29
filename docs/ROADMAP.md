@@ -1,7 +1,7 @@
 # TRACE Roadmap
 
-**Last updated:** 2026-05-20
-**Current release:** [0.1.3](https://github.com/bsesic/trace/releases/tag/0.1.3) — live on [PyPI](https://pypi.org/project/tracealign/), archived on [Zenodo](https://doi.org/10.5281/zenodo.20315408), documented on [Read the Docs](https://tracealign.readthedocs.io)
+**Last updated:** 2026-05-27
+**Current release:** [0.2.0](https://github.com/bsesic/trace/releases/tag/0.2.0) — live on [PyPI](https://pypi.org/project/tracealign/), archived on [Zenodo](https://doi.org/10.5281/zenodo.20315408), documented on [Read the Docs](https://tracealign.readthedocs.io)
 
 This roadmap is in two layers:
 
@@ -34,7 +34,7 @@ The full ambition spans ten stages, each its own brainstorm → spec → plan �
 | # | Stage | Capability it unlocks | Status |
 |---|---|---|---|
 | 1 | **Pairwise aligner + Hebrew pack** | TRACE v0.1 — paarweise Alignment-Kernel | ✅ released 0.1.3 |
-| 2 | **Master alignment graph** | Simultaneous multi-witness alignment (Sifra full witness set, Tanhuma) | in progress (v0.2 feature/v0.2-multi-witness) |
+| 2 | **Master alignment graph** | Simultaneous multi-witness alignment (Sifra full witness set, Tanhuma) | ✅ released 0.2.0 |
 | 3 | **Geniza fragment anchor detection** | Matching small fragments against a large candidate pool (hundreds of Sifra Genizah fragments) | planned |
 | 4 | **Text-reuse detection** | Finding recurring phrases and verbatim citations across a corpus (biblical citations in rabbinic literature, recurring rabbinic formulae) | planned |
 | 5 | **Apparatus / critical-edition generation** | Producing publication-grade critical editions (lemmas, sigla, Fließtext) directly from alignment output | planned |
