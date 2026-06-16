@@ -1,6 +1,6 @@
 # TRACE Roadmap
 
-**Last updated:** 2026-05-27
+**Last updated:** 2026-06-16
 **Current release:** [0.2.0](https://github.com/bsesic/trace/releases/tag/0.2.0) — live on [PyPI](https://pypi.org/project/tracealign/), archived on [Zenodo](https://doi.org/10.5281/zenodo.20315408), documented on [Read the Docs](https://tracealign.readthedocs.io)
 
 This roadmap is in two layers:
@@ -63,7 +63,7 @@ The full ambition spans ten stages, each its own brainstorm → spec → plan �
 | JSON (round-trip) | ✅ |
 | eScriptorium JSON | ✅ |
 | TEI XML | ✅ |
-| Sefaria API | planned |
+| Sefaria API | ✅ released 0.3.0 |
 | OpenScriptures Hebrew Bible (OSHB) | planned |
 | STEPBible | planned |
 | SQE (Scripta Qumranica Electronica) | planned |
