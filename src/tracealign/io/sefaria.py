@@ -89,3 +89,35 @@ def load(
 
     label = seq_label or version or ref
     return tracealign.tokenize(text, lang=lang, seq_label=label)
+
+
+def load_segments(
+    ref: str,
+    version: str | None = None,
+    lang: str | LanguagePack = "hbo",
+    seq_label: str | None = None,
+) -> list[list[Token]]:
+    """Load one Sefaria reference and return one token list per segment.
+
+    Each segment gets a derived seq_label of the form "{base}:{n}" where
+    base defaults to the version title and n is 1-based.
+    """
+    url = _build_url(ref, version)
+    payload = _fetch_json(url)
+    version_block = _select_version(payload, version)
+    text_field = version_block.get("text")
+    if not isinstance(text_field, list):
+        raise ValueError(
+            f"Sefaria version {version!r} returned a single segment; "
+            f"use load() instead of load_segments()"
+        )
+
+    base_label = seq_label or version or ref
+    out: list[list[Token]] = []
+    for i, segment_text in enumerate(text_field, start=1):
+        if not isinstance(segment_text, str) or not segment_text.strip():
+            out.append([])
+            continue
+        seg_label = f"{base_label}:{i}"
+        out.append(tracealign.tokenize(segment_text, lang=lang, seq_label=seg_label))
+    return out

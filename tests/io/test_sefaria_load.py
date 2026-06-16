@@ -38,3 +38,28 @@ def test_load_single_segment_passes_seq_label_through():
             seq_label="Davidson",
         )
     assert all(t.id.startswith("Davidson:") for t in tokens)
+
+
+def test_load_segments_returns_one_list_per_mishna():
+    payload = _load_fixture("sefaria_avot_1_davidson.json")
+    with patch.object(sefaria, "_fetch_json", return_value=payload):
+        segments = sefaria.load_segments(
+            "Pirkei Avot 1",
+            version="William Davidson Edition - Hebrew",
+            seq_label="Davidson",
+        )
+    assert len(segments) == 3
+    assert all(isinstance(seg, list) for seg in segments)
+    assert all(seg for seg in segments)
+
+
+def test_load_segments_assigns_distinct_seq_labels_per_segment():
+    payload = _load_fixture("sefaria_avot_1_davidson.json")
+    with patch.object(sefaria, "_fetch_json", return_value=payload):
+        segments = sefaria.load_segments(
+            "Pirkei Avot 1",
+            version="William Davidson Edition - Hebrew",
+            seq_label="Davidson",
+        )
+    for i, seg in enumerate(segments):
+        assert all(t.id.startswith(f"Davidson:{i + 1}:") for t in seg)
