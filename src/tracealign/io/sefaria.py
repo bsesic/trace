@@ -141,3 +141,19 @@ def load_segments(
         seg_label = f"{base_label}:{i}"
         out.append(tracealign.tokenize(cleaned, lang=lang, seq_label=seg_label))
     return out
+
+
+def load_versions(
+    ref: str,
+    versions: list[str],
+    lang: str | LanguagePack = "hbo",
+) -> dict[str, list[list[Token]]]:
+    """Load multiple versions of one reference. One call per version.
+
+    Returns dict[version_title, list[list[Token]]] — for each requested
+    version, a list of token lists, one per segment.
+    """
+    return {
+        v: load_segments(ref, version=v, lang=lang, seq_label=v)
+        for v in versions
+    }
