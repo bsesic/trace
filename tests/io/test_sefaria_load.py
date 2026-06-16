@@ -83,3 +83,36 @@ def test_load_strips_html_tags():
     assert "עולם" in texts
     assert "1" not in texts
     assert all("<" not in t.raw and ">" not in t.raw for t in tokens)
+
+
+def test_load_versions_returns_dict_of_segments_per_version():
+    davidson = _load_fixture("sefaria_avot_1_davidson.json")
+    vilna = _load_fixture("sefaria_avot_1_vilna.json")
+    kaufmann = _load_fixture("sefaria_avot_1_kaufmann.json")
+
+    def fake_fetch(url):
+        if "William%20Davidson" in url:
+            return davidson
+        if "Vilna" in url:
+            return vilna
+        if "Kaufmann" in url:
+            return kaufmann
+        raise AssertionError(f"unexpected URL: {url}")
+
+    with patch.object(sefaria, "_fetch_json", side_effect=fake_fetch):
+        out = sefaria.load_versions(
+            "Pirkei Avot 1",
+            versions=[
+                "William Davidson Edition - Hebrew",
+                "Vilna Edition",
+                "Kaufmann Manuscript",
+            ],
+        )
+
+    assert set(out.keys()) == {
+        "William Davidson Edition - Hebrew",
+        "Vilna Edition",
+        "Kaufmann Manuscript",
+    }
+    for segments in out.values():
+        assert len(segments) == 3
