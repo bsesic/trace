@@ -8,6 +8,7 @@ patching the module-level `_http_get` function.
 from __future__ import annotations
 
 import json
+import re
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -17,6 +18,20 @@ from tracealign.model import Token
 
 
 SEFARIA_API_BASE = "https://www.sefaria.org/api/v3/texts"
+
+
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_FOOTNOTE_DIGIT_RE = re.compile(r"<sup[^>]*>.*?</sup>", flags=re.DOTALL)
+
+
+def _strip_html(text: str) -> str:
+    """Remove embedded HTML markup before tokenising.
+
+    Footnote markers inside <sup>...</sup> are dropped entirely; other
+    tags are removed while inner text is preserved.
+    """
+    without_footnotes = _FOOTNOTE_DIGIT_RE.sub("", text)
+    return _HTML_TAG_RE.sub("", without_footnotes)
 
 
 def _http_get(url: str) -> bytes:
@@ -88,6 +103,7 @@ def load(
         raise ValueError(f"Sefaria version {version!r} has no text field")
 
     label = seq_label or version or ref
+    text = _strip_html(text)
     return tracealign.tokenize(text, lang=lang, seq_label=label)
 
 
@@ -118,6 +134,10 @@ def load_segments(
         if not isinstance(segment_text, str) or not segment_text.strip():
             out.append([])
             continue
+        cleaned = _strip_html(segment_text)
+        if not cleaned.strip():
+            out.append([])
+            continue
         seg_label = f"{base_label}:{i}"
-        out.append(tracealign.tokenize(segment_text, lang=lang, seq_label=seg_label))
+        out.append(tracealign.tokenize(cleaned, lang=lang, seq_label=seg_label))
     return out
