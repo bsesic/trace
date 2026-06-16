@@ -63,3 +63,23 @@ def test_load_segments_assigns_distinct_seq_labels_per_segment():
         )
     for i, seg in enumerate(segments):
         assert all(t.id.startswith(f"Davidson:{i + 1}:") for t in seg)
+
+
+def test_load_strips_html_tags():
+    payload = {
+        "ref": "Pirkei Avot 1:1",
+        "versions": [
+            {
+                "versionTitle": "Test",
+                "language": "he",
+                "text": "<b>שלום</b> <i>עולם</i><sup>1</sup>",
+            }
+        ],
+    }
+    with patch.object(sefaria, "_fetch_json", return_value=payload):
+        tokens = sefaria.load("Pirkei Avot 1:1", version="Test", seq_label="T")
+    texts = [t.text for t in tokens]
+    assert "שלום" in texts
+    assert "עולם" in texts
+    assert "1" not in texts
+    assert all("<" not in t.raw and ">" not in t.raw for t in tokens)
