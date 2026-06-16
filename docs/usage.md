@@ -155,6 +155,34 @@ b = load_tei("W2.xml", lang="hbo", seq_label="W2")
 
 If the TEI body contains `<tei:w>` elements, each `<w>` is treated as one token boundary. If it does not, the body's flow text is tokenized through the standard plaintext pipeline.
 
+### Sefaria
+
+```python
+from tracealign.io import sefaria
+
+segments = sefaria.load_segments(
+    "Pirkei Avot 1",
+    version="William Davidson Edition - Hebrew",
+    seq_label="Davidson",
+)
+print(f"loaded {len(segments)} mishnayot")
+```
+
+For multi-witness work, fetch several versions at once:
+
+```python
+witnesses = sefaria.load_versions(
+    "Pirkei Avot 1",
+    versions=[
+        "William Davidson Edition - Hebrew",
+        "Vilna Edition",
+        "Kaufmann Manuscript",
+    ],
+)
+```
+
+Sefaria's API is hit live; HTML markup is stripped automatically before tokenisation.
+
 ## Custom lexica
 
 The Hebrew pack ships with a seed lexicon (six rabbinic abbreviations, two plene/defective pairs). You almost certainly want to extend it with project-specific entries:
