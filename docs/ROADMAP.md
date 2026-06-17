@@ -1,7 +1,7 @@
 # TRACE Roadmap
 
 **Last updated:** 2026-06-16
-**Current release:** [0.3.0](https://github.com/bsesic/trace/releases/tag/0.3.0) — live on [PyPI](https://pypi.org/project/tracealign/), archived on [Zenodo](https://doi.org/10.5281/zenodo.20315408), documented on [Read the Docs](https://tracealign.readthedocs.io)
+**Current release:** [0.3.1](https://github.com/bsesic/trace/releases/tag/0.3.1) — live on [PyPI](https://pypi.org/project/tracealign/), archived on [Zenodo](https://doi.org/10.5281/zenodo.20315408), documented on [Read the Docs](https://tracealign.readthedocs.io)
 
 This roadmap is in two layers:
 
