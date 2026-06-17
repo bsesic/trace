@@ -20,7 +20,7 @@ TRACE is designed for textual criticism, manuscript witness comparison, and the 
 - **Pairwise aligner** — semi-global Needleman–Wunsch with affine gap penalties (Gotoh) and a multi-token abbreviation lookahead (`ר"י` ↔ `רבי ישמעאל`).
 - **Multi-witness aligner** (v0.2) — N witnesses aligned simultaneously into a canonical variant graph (DAG) plus a derived aligned table view, via pairwise distances → UPGMA guide tree → POA-based progressive merge. Determinism is pinned by a permutation-invariance property test; correctness by a lossless-reconstruction property test.
 - **Hebrew language pack** with niqqud strip, plene/defective skeleton matching, gershayim/maqqef tokenizer hooks, and a seed lexicon of rabbinic abbreviations (extendable via `Lexica.merge()`).
-- **I/O** for plain text, JSON (round-trip for both pairwise and multi-witness results), eScriptorium exports (with bbox + line metadata), and TEI XML (`<tei:w>` mode + flow-text fallback).
+- **I/O** for plain text, JSON (round-trip for both pairwise and multi-witness results), eScriptorium exports, TEI XML, and Sefaria's public API (`tracealign.io.sefaria.load_versions`).
 - **Reproducible** — every `AlignmentResult` / `MultiAlignmentResult` carries `trace_version` and `language_pack_version` in its params.
 
 ## Installation
