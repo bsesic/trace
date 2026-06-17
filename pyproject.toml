@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tracealign"
-version = "0.3.1"
+version = "0.4.0.dev0"
 description = "Textual Reuse, Alignment, and Collation Engine — pairwise philological alignment with pluggable language packs"
 authors = [{ name = "Benjamin Schnabel" }]
 requires-python = ">=3.10"
