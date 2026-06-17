@@ -52,11 +52,16 @@ def _fetch_json(url: str) -> dict:
 
 
 def _build_url(ref: str, version: str | None) -> str:
-    """Build the v3 API URL for a reference, optionally pinning a version."""
+    """Build the v3 API URL for a reference, optionally pinning a version.
+
+    The Sefaria v3 API accepts ``version=<language>|<versionTitle>``. The
+    language token must be the full name (``hebrew``), not the ISO code
+    (``he``); the API silently returns an empty versions array otherwise.
+    """
     encoded_ref = quote(ref.replace(" ", "_"), safe="._")
     url = f"{SEFARIA_API_BASE}/{encoded_ref}"
     if version is not None:
-        url += f"?version=he|{quote(version, safe='')}"
+        url += f"?version=hebrew|{quote(version, safe='')}"
     return url
 
 
