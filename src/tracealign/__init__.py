@@ -31,7 +31,7 @@ from tracealign.tokenize.base import (
 )
 from tracealign.tokenize.plaintext import pretokenize
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # Force Hebrew pack registration on first import.
 import tracealign.lang.hebrew  # noqa: F401  -- side effect: registers HBO pack
