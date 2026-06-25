@@ -33,11 +33,15 @@ from tracealign.tokenize.plaintext import pretokenize
 
 __version__ = "0.4.0.dev0"
 
-# Force Hebrew pack registration on first import.
+# Force Hebrew and Arabic pack registration on first import.
 import tracealign.lang.hebrew  # noqa: F401  -- side effect: registers HBO pack
+import tracealign.lang.arabic  # noqa: F401  -- side effect: registers ARA pack
 
 # Built-in pack module names; used to restore registrations after test resets.
-_BUILTIN_PACK_MODULES = ("tracealign.lang.hebrew",)
+_BUILTIN_PACK_MODULES = (
+    "tracealign.lang.hebrew",
+    "tracealign.lang.arabic",
+)
 
 
 def _reload_builtin_packs() -> None:
