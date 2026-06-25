@@ -34,6 +34,7 @@ def _emit_split(r: RawToken, cut: int) -> list[RawToken]:
 def _split_one(r: RawToken) -> list[RawToken]:
     text = r.raw
     # Rule 2: single-letter proclitic + article (e.g. والـ, بالـ).
+    # len > 3: proclitic + article (ال) + at least one host char
     if (
         len(text) > 3
         and text[0] in _PROCLITIC_LETTERS
@@ -44,6 +45,7 @@ def _split_one(r: RawToken) -> list[RawToken]:
     if len(text) > 2 and text[0] == LAM and text[1] == LAM:
         return _emit_split(r, 1)
     # Rule 1: bare definite article.
+    # len > 2: article (ال) + at least one host char
     if len(text) > 2 and text[:2] == ARTICLE:
         return _emit_split(r, 2)
     return [r]

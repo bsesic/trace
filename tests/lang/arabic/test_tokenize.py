@@ -50,6 +50,19 @@ def test_does_not_split_short_article_like_token():
     assert _texts(out) == ["ال"]
 
 
+def test_does_not_split_short_lam_lam_token():
+    # "لل" alone (length 2) must not split into ["ل", "ل"]
+    out = split_proclitics([_raw("لل")])
+    assert _texts(out) == ["لل"]
+
+
+def test_splits_kaf_before_article():
+    out = split_proclitics([_raw("كالكتاب")])
+    assert _texts(out) == ["ك", "الكتاب"]
+    assert "proclitic" in out[0].flags
+    assert "compound_part" in out[1].flags
+
+
 def test_spans_are_contiguous_after_split():
     out = split_proclitics([_raw("الكتاب", start=10)])
     assert out[0].span == (10, 12)   # ال
