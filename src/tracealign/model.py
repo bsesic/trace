@@ -22,6 +22,8 @@ class Reason(str, Enum):
     PLENE_DEFECTIVE = "plene_defective"
     ABBREVIATION = "abbreviation"
     ORTHOGRAPHIC = "orthographic"
+    DIACRITICS_STRIPPED = "diacritics_stripped"
+    ORTHOGRAPHIC_VARIANT = "orthographic_variant"
     SCRIPT_VARIANT = "script_variant"
     INSERTION = "insertion"
     OMISSION = "omission"
